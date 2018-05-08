@@ -1,0 +1,22 @@
+{
+    "name": "ordent/ramenauth",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Dimas Satrio",
+            "email": "dimassrio@gmail.com"
+        }
+    ],
+    "require": {
+        "orchestra/testbench": "^3.6",
+        "ordent/ramenrest": "^0.0.47",
+        "tymon/jwt-auth": "0.5.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ordent\\RamenRest\\": "src/",
+            "Orchestra\\Testbench\\" : "vendor/orchestra/testbench-core/src/"
+        }
+    },
+    "description": ""
+}
