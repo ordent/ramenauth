@@ -83,7 +83,10 @@ trait AuthTrait{
         if($roles){
             $user->roles;
         }
-        return $this->wrapResponse($user, \JWTAuth::fromUser($user));
+        $meta = new \StdClass;
+        $meta->status_code = 200;
+        $meta->message = 'Login is successful';
+        return $this->wrapResponse($user, \JWTAuth::fromUser($user), $meta);
     }
 
     private function authenticate($credentials){
@@ -98,10 +101,15 @@ trait AuthTrait{
         return $this->wrapResponse(\JWTAuth::toUser($token), $token);
     }
 
-    private function wrapResponse($model, $token){
+    private function wrapResponse($model, $token, $meta = null){
         $result = new \StdClass;
-        $result->users = $model;
-        $result->token = $token;
+        $result->data = new \StdClass;
+        $result->meta = new \StdClass;
+        if(!is_null($meta)){
+            $result->meta = $meta;
+        }
+        $result->data->users = $model;
+        $result->data->token = $token;
         return response()->successResponse($result);
     }
 }
