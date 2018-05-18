@@ -76,6 +76,8 @@ trait AuthTrait{
         }
         if($check){
             return $this->authenticateFromModel($this->model->where($type, $identity)->get()->first(), $roles);
+        }else{
+            abort(401, 'Login failed, wrong username or password');
         }
     }
 
