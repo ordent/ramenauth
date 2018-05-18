@@ -9,7 +9,7 @@
     ],
     "require": {
         "orchestra/testbench": "^3.6",
-        "ordent/ramenrest": "^0.0.47",
+        "ordent/ramenrest": "^0.0.49",
         "tymon/jwt-auth": "0.5.*"
     },
     "autoload": {
