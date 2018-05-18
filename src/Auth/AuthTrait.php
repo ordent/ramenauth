@@ -11,7 +11,7 @@ trait AuthTrait{
         $validator = Validator::make($request->all(), [
             'email' => 'requiredWithoutAll:phone,username',
             'username' => 'requiredWithoutAll:phone,email',
-            'phone' => 'requiredWithoutAll:phone,username',
+            'phone' => 'requiredWithoutAll:email,username',
             'password' => 'required'
         ]);
 
@@ -27,6 +27,16 @@ trait AuthTrait{
     public function ramenCheck(Request $request){
         $type = $request->type;
         $identity = $request[$type];
+        $validator = Validator::make($request->all(), [
+            'type' => 'required',
+            'username' => 'requiredWithoutAll:phone,email',
+            'email' => 'requiredWithoutAll:phone,username',
+            'phone' => 'requiredWithoutAll:email,username',
+        ]);
+
+        if($validator->fails()){
+            throw ValidationException::withMessages($validator->errors()->getMessages());
+        }
         try{
             $model = $this->model->where($type, $identity)->firstOrFail();
         }catch(ModelNotFoundException $e){
@@ -38,7 +48,11 @@ trait AuthTrait{
                     'type' => $type,
                     'value' => $identity,
                     'status' => true
-                ]]
+                ], 
+                 'meta' => [
+                     'status_code' => 200
+                 ]
+                ]
             );
         }
 

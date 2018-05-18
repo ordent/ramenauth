@@ -14,7 +14,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Ordent\\RamenRest\\": "src/",
+            "Ordent\\RamenAuth\\": "src/",
             "Orchestra\\Testbench\\" : "vendor/orchestra/testbench-core/src/"
         }
     },
