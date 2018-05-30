@@ -4,6 +4,7 @@ namespace Ordent\RamenAuth\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Tymon\JWTAuth\Providers\JWTAuthServiceProvider;
+use Spatie\Permission\PermissionServiceProvider;
 class RamenAuthProvider extends ServiceProvider
 {
     /**
@@ -43,6 +44,10 @@ class RamenAuthProvider extends ServiceProvider
     {
         $this->app->register(\Ordent\RamenRest\Providers\RamenRestProvider::class);
         $this->app->register(JWTAuthServiceProvider::class);
+        $this->app->register(PermissionServiceProvider::class);
+        $this->app->singleton('AuthManager', function($app){
+            return app('\Ordent\RamenAuth\Manager\AuthManager');
+        });
         $loader = \Illuminate\Foundation\AliasLoader::getInstance();
         $loader->alias('JWTAuth',\Tymon\JWTAuth\Facades\JWTAuth::class);
         // $this->mergeConfigFrom(

@@ -9,8 +9,9 @@
     ],
     "require": {
         "orchestra/testbench": "^3.6",
-        "ordent/ramenrest": "^0.0.49",
-        "tymon/jwt-auth": "0.5.*"
+        "ordent/ramenrest": "^1.0.0",
+        "tymon/jwt-auth": "0.5.*",
+        "spatie/laravel-permission": "^2.12"
     },
     "autoload": {
         "psr-4": {
