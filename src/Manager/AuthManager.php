@@ -89,8 +89,7 @@ class AuthManager{
             throw ValidationException::withMessages($validator->errors()->getMessages());
         }
         $data = array_only($request->toArray(), $model->getFillable());
-        $result = $model->create($data);
-        $result->fresh();
+        $result = $model->create($data)->refresh();
         $meta = [ 'status_code' => 200, 'message' => 'You have been succesfully registered.' ];
         return [$result, $meta];
     }
