@@ -14,25 +14,19 @@ class RamenAuthProvider extends ServiceProvider
      */
     public function boot()
     {
-        
-        // $this->loadRoutesFrom(__DIR__.'/../Routes/routes.php');
-
-        // $responseFactory = $this->app[\Ordent\RamenRest\Response\RestResponse::class];
-        // foreach (get_class_methods($responseFactory) as $method){
-        //     \Response::macro($method, [$responseFactory, $method]);
-        // }
-        // \App::bind(
-        //     \Illuminate\Contracts\Debug\ExceptionHandler::class,
-        //     \Ordent\RamenRest\Exception\Handler::class
-        // );
-
-        // $this->publishes([
-        //     __DIR__.'/../config/ramen.php' => config_path('ramen.php'),
-        // ]);
-
-        
-        
-        // \Event::listen('Ordent\RamenRest\Events\FileHandlerEvent', 'Ordent\RamenRest\Listeners\FileHandlerListener@handle');
+        $path = __DIR__."/Templates";   
+        $this->loadViewsFrom($path, 'ramenauth');
+        $this->publishes([
+            $path => resource_path('views/vendor/ramenauth'),
+        ]);
+        $this->loadMigrationsFrom(__DIR__.'/Migrations');
+        $this->publishes([
+            __DIR__.'/ramenauth.php' => config_path('ramenauth.php'),
+        ]);
+        $this->loadRoutesFrom(__DIR__.'/routes.php');
+        $this->publishes([
+            __DIR__.'/Assets' => public_path('vendor/ramenauth'),
+        ], 'public');
     }
 
     /**
@@ -50,6 +44,9 @@ class RamenAuthProvider extends ServiceProvider
         });
         $loader = \Illuminate\Foundation\AliasLoader::getInstance();
         $loader->alias('JWTAuth',\Tymon\JWTAuth\Facades\JWTAuth::class);
+        $this->mergeConfigFrom(
+            __DIR__.'/ramenauth.php', 'ramenauth'
+        );
         // $this->mergeConfigFrom(
         //     __DIR__.'/../config/ramen.php', 'ramen'
         // );

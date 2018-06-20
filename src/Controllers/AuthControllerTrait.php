@@ -5,28 +5,34 @@ namespace Ordent\RamenAuth\Controllers;
 use Illuminate\Http\Request;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-
+/**
+ * AuthControllerTrait trait
+ * Main Trait to use in your account class
+ */
 trait AuthControllerTrait{
+    /**
+     * ramenLogin
+     *
+     * @param Request $request
+     * @return JsonObject
+     * @throws Exception if account with email or the phone number not found.
+     */
     public function ramenLogin(Request $request){
-        $rules = [
-            'email' => 'requiredWithoutAll:phone,username',
-            'username' => 'requiredWithoutAll:phone,email',
-            'phone' => 'requiredWithoutAll:email,username',
-            'password' => 'required'
-        ];
-        $manager = app('AuthManager');
+        $rules = config('ramenauth.login_rules');
+        $manager = app(config('ramenauth.manager'));
         list($result, $meta, $post) = $manager->ramenLogin($request, $rules, $this->model); 
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, $post);
     }
-
+    /**
+     * ramenCheck function
+     *
+     * @param Request $request
+     * @return JsonObject
+     * @throws Exception If there is any failed validation or The Account with questionend username, email or phone is alrady exist.
+     */
     public function ramenCheck(Request $request){
-        $rules = [
-            'type' => 'required',
-            'username' => 'requiredWithoutAll:phone,email',
-            'email' => 'requiredWithoutAll:phone,username',
-            'phone' => 'requiredWithoutAll:email,username',
-        ];
-        $manager = app('AuthManager');
+        $rules = config('ramenauth.check_rules');
+        $manager = app(config('ramenauth.manager'));
         list($result, $meta, $status) = $manager->ramenCheck($request, $rules, $this->model);
         if($status == 422){
             return response()->errorValidation($result, 'Account with this identity is already exist');
@@ -37,8 +43,8 @@ trait AuthControllerTrait{
 
     public function ramenRefresh(Request $requests){
         // the token is valid and we have found the user via the sub claim
-        $rules = ['token' => 'required'];
-        $manager = app('AuthManager');        
+        $rules = config('ramenauth.refresh_rules');
+        $manager = app(config('ramenauth.manager'));        
         list($result, $meta) = $manager->ramenRefresh($request, $rules);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
@@ -46,10 +52,7 @@ trait AuthControllerTrait{
     public function ramenRegister(Request $request){
         $request = $this->preRamenRegister($request);
         $rules = $this->resolveRules();
-        if(is_null($rules)){
-            $rules = ['email' => 'required|unique:users.id', 'password' => 'required|min:6|confirmation'];
-        }
-        $manager = app('AuthManager');
+        $manager = app(config('ramenauth.manager'));
         list($result, $meta) = $manager->ramenRegister($request, $rules, $this->model);
         list($result, $meta) = $this->postRamenRegister($result, $meta);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
@@ -71,34 +74,68 @@ trait AuthControllerTrait{
         }else{
             return $this->rules;
         }
-        return ['email' => 'required|unique:users.id', 'password' => 'required|min:6|confirmation'];
+        return config('ramenauth.register_rules');
     }
 
     public function ramenAssignRoleToUser(Request $request, $id){
-        $manager = app('AuthManager');
-        $rules = ['role_name' => 'required_without:role_id', 'role_id' => 'required_without:role_name'];
+        $manager = app(config('ramenauth.manager'));
+        $rules = config('ramenauth.roles_assign_rules');
         list($result, $meta) = $manager ->ramenAssignRoleToUser($request, $id, $rules, $this->model);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
     public function ramenRemoveRoleFromUser(Request $request, $id){
-        $manager = app('AuthManager');
-        $rules = ['role_name' => 'required_without:role_id', 'role_id' => 'required_without:role_name'];
+        $manager = app(config('ramenauth.manager'));
+        $rules = config('ramenauth.roles_remove_rules');
         list($result, $meta) = $manager ->ramenRemoveRoleFromUser($request, $id, $rules, $this->model);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
     public function ramenAssignPermissionToRole(Request $request, $id){
-        $manager = app('AuthManager');
-        $rules = ['permission_name' => 'required_without:permission_id', 'permission_id' => 'required_without:permission_name'];
+        $manager = app(config('ramenauth.manager'));
+        $rules = config('ramenauth.permissions_assign_rules');
         list($result, $meta) = $manager ->ramenAssignPermissionToRole($request, $id, $rules, $this->model);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
     public function ramenRemovePermissionFromRole(Request $request, $id){
-        $manager = app('AuthManager');
-        $rules = ['permission_name' => 'required_without:permission_id', 'permission_id' => 'required_without:permission_name'];
+        $manager = app(config('ramenauth.manager'));
+        $rules = config('ramenauth.permissions_remove_rules');
         list($result, $meta) = $manager ->ramenRemovePermissionFromRole($request, $id, $rules, $this->model);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
+
+    public function ramenForget(Request $request, $type = 'email'){
+        
+    }
+
+    public function ramenVerifyStart(){
+        $title = "Start Verification";
+        return view('ramenauth::verify-start', compact('title'));
+    }
+
+    public function ramenVerify(Request $request, $type = 'email'){
+        $rules = config('ramenauth.verifications_rules');
+        $manager = app(config('ramenauth.manager'));
+
+        list($result, $meta) = $manager->ramenVerify($request, $rules, $type, $this->model);
+
+        return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+    }
+
+    public function ramenVerifyFinish(Request $request, $identity, $code, $type = 'json'){
+        $manager = app(config('ramenauth.manager'));
+        
+        if($type == 'json'){
+            list($result, $meta) = $manager->ramenVerifyFinish($request, $identity, $code, $this->model);
+            return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+        }else{
+            try{
+                list($result, $meta) = $manager->ramenVerifyFinish($request, $identity, $code, $this->model);
+            }catch(\Exception $e){
+                return view('ramenauth::verify-failed', ['message'=>$e->getMessage(), 'title' => 'RamenAuth | Verification failed.']);
+            }
+            return view('ramenauth::verify-finish');
+        }
+    }    
 }

@@ -5,7 +5,8 @@ use Validator;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-
+use Illuminate\Support\Facades\Schema;
+use Ordent\RamenAuth\Notifications\RestNotification;
 class AuthManager{
     public function ramenLogin(Request $request, $rules = [], $model){
         $validator = Validator::make($request->all(), $rules);
@@ -16,7 +17,6 @@ class AuthManager{
         $roles = $request->input('roles', false);
         $password = $request->input('password');
         try{
-
             $check = \Auth::attempt([$type => $request[$type], 'password' => $password]);
         }catch(ModelNotFoundException $e){
             return $e;
@@ -211,8 +211,106 @@ class AuthManager{
     }
 
     // verify
-    public function ramenVerify(Request $request, $id){
+    public function ramenVerify(Request $request, $rules = [], $type = 'email',$model){
+        $validator = Validator::make($request->all(), $rules);
 
+        if($validator->fails()){
+            throw ValidationException::withMessages($validator->errors()->getMessages());
+        }
+        if(!Schema::hasTable('ramen_verifications')){
+            abort(400, 'Can\'t continue to verify because the verification table is not exists.');
+        }
+        $identity = $request->input('identity');
+        $users = $model->where($type, $identity)->first();
+        if(is_null($users)){
+            abort(404, "Account with that identity is not found.");
+        }
+        $query_string = 'SELECT * FROM ramen_verifications WHERE user_id = '.$users->id;
+        $code = "";
+        $query = \DB::table('ramen_verifications')->where('user_id', $users->id)->get();
+        if(is_null($query) || count($query) < 1){
+            $query_insert = 'INSERT INTO ramen_verifications (user_id, code) VALUES (?,?)';
+            $code = strtoupper(str_random(6));
+            $query = \DB::insert($query_insert, [$users->id, $code, null, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]);
+            if($query){
+                $query = \DB::select($query_string);
+            }
+        }else{
+            if(is_null(array_first($query)->verified_at)){
+                $code = array_first($query)->code;
+            }else{
+                abort(400, 'This user has already been verified');
+            }
+        }
+        $meta = [];
+        
+        if(count($query)>0){
+            $value = [
+                'users' => $users,
+                'code' => $code
+            ];
+            $users->notify(new RestNotification($type, 'verify', $value));
+            $meta['message'] = 'Verification is now being sent, please wait a couple of minutes.';
+            $meta['status_code'] = 200;
+            return [$value, $meta];    
+        }else{
+            abort(400, 'Verification process failed, please wait a couple of minutes to try again.');
+        }
+        
+        
+    }
+
+    public function ramenVerifyFinishHTML(Request $request, $type, $identity, $code, $model){
+        $result = $this->ramenVerifyFinish($request, $type, $identity, $code, $model);
+    }
+
+    public function ramenVerifyFinishJSON(){
+
+    }
+
+    public function ramenVerifyFinish(Request $request, $identity, $code, $model){
+        $type = 'email';
+        $identity = base64_decode($identity);
+        $rules = [
+            'identity' => 'email'
+        ];
+
+        $validator = Validator::make(['identity'=>$identity], $rules);
+
+        if($validator->fails()){
+            $type = 'phone';
+        }
+
+        if(!Schema::hasTable('ramen_verifications')){
+            abort(400, 'Can\'t continue to verify because the verification table is not exists.');
+        }
+        $users = $model->where($type, $identity)->first();
+        if(is_null($users)){
+            abort(404, "Account with that identity is not found.");
+        }
+
+        $query_string = 'SELECT * FROM ramen_verifications WHERE user_id = '.$users->id.' AND verified_at = NULL';
+        $query = \DB::table('ramen_verifications')->where('user_id', $users->id)->whereNull('verified_at')->get();
+        if(is_null($query) || count($query) < 1){
+            $query = \DB::table('ramen_verifications')->where('user_id', $users->id)->get();
+            if(is_null($query) || count($query) < 1){
+                abort(400, 'We can\'t find any account with that identity requesting for verification');
+            }else{
+                abort(400, 'It seems like the account is already verified.');
+            }
+        }else{
+            $accounts = array_first($query);
+            if($accounts->code == $code){
+                $query = \DB::table('ramen_verifications')->where('user_id', $users->id)->whereNull('verified_at')->update(['verified_at' => date('Y-m-d H:i:s')]);
+                if($query){
+                    $meta['message'] = 'Verification now completed, you can now try to login';
+                    $meta['status_code'] = 200;
+                    return [$users, $meta]; 
+                }
+            }else{
+                abort(400, 'We can\'t seem to verify the accounts, it looks like the code is invalid');
+            }
+        }
     }
     // forgot password
     public function ramenForgot(Request $request, $id){
