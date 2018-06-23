@@ -13,7 +13,7 @@ class AuthManager{
         if($validator->fails()){
             throw ValidationException::withMessages($validator->errors()->getMessages());
         }
-        $type = head(array_intersect(array_keys(array_except($request->all(), 'password')), ['email', 'password', 'username']));
+        $type = head(array_intersect(array_keys(array_except($request->all(), 'password')), ['email', 'phone', 'username']));
         $roles = $request->input('roles', false);
         $password = $request->input('password');
         try{
