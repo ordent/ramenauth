@@ -97,6 +97,10 @@ class RestNotification extends Notification implements ShouldQueue{
         }
     }
 
+    public function toPhone($notifiable){
+        
+    }
+
     /**
      * Get the array representation of the notification.
      *
