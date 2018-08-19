@@ -114,7 +114,7 @@ class AuthManager
     public function postRamenRegister($result){
         $verification = null;
         if(config('ramenauth.verification')){
-            if(array_search('status', $result->getFillable() !== FALSE)){
+            if(array_search('status', $result->getFillable()) !== FALSE){
                 if($result->status < 2){
                     if(!is_null($result->phone)){
                         $verification = $this->ramenAskVerification('phone', $result);
