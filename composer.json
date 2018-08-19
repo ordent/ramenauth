@@ -12,12 +12,15 @@
         "ordent/ramenrest": "^1.0.0",
         "tymon/jwt-auth": "0.5.*",
         "spatie/laravel-permission": "^2.12",
-        "guzzlehttp/guzzle": "^6.3"
+        "guzzlehttp/guzzle": "^6.3",
+        "nexmo/client": "^1.4",
+        "nexmo/laravel": "^1.1"
     },
     "autoload": {
         "psr-4": {
             "Ordent\\RamenAuth\\": "src/",
-            "Orchestra\\Testbench\\" : "vendor/orchestra/testbench-core/src/"
+            "Orchestra\\Testbench\\" : "vendor/orchestra/testbench-core/src/",
+            "Nexmo\\Nexmo\\": "vendor/nexmo/client/src"
         }
     },
     "description": ""

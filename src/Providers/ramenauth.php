@@ -48,7 +48,7 @@ return [
     'sms_verification_request_url' => env('SMS_VERIFICATION_REQUEST_URL', 'https://api.nexmo.com/verify/json'),
     'sms_verification_verify_url' => env('SMS_VERIFICATION_VERIFY_URL', 'https://api.nexmo.com/verify/check/json '),
     'sms_verification_cancel_url' => env('SMS_VERIFICATION_CANCEL_URL', 'https://api.nexmo.com/verify/json'),
-    'sms_verification_api_key' => env('SMS_VERIFICATION_API_KEY'),
-    'sms_verification_api_secret' => env('SMS_VERIFICATION_API_SECRET'),
+    'sms_verification_api_key' => env('SMS_VERIFICATION_API_KEY', env('NEXMO_KEY')),
+    'sms_verification_api_secret' => env('SMS_VERIFICATION_API_SECRET', env('NEXMO_SECRET')),
     'sms_verification_title' => env('SMS_VERIFICATION_TITLE'),
 ];

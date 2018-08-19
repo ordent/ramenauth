@@ -54,7 +54,7 @@ trait AuthControllerTrait{
         $rules = $this->resolveRules();
         $manager = app(config('ramenauth.manager'));
         list($result, $meta) = $manager->ramenRegister($request, $rules, $this->model);
-        list($result, $meta) = $this->postRamenRegister($result, $meta);
+        list($result, $meta) = $this->postRamenRegister($result, $meta, $manager);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
@@ -62,7 +62,7 @@ trait AuthControllerTrait{
         return $request;
     }
 
-    public function postRamenRegister($result, $meta){
+    public function postRamenRegister($result, $meta, $manager){
         return [$result, $meta];
     }
 
@@ -118,7 +118,7 @@ trait AuthControllerTrait{
         $rules = config('ramenauth.verifications_rules');
         $manager = app(config('ramenauth.manager'));
 
-        list($result, $meta) = $manager->ramenVerify($request, $rules, $type, $this->model);
+        list($result, $meta) = $manager->ramenCompleteVerification($type, $request, $this->model);
 
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }

@@ -6,9 +6,17 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Validator;
+use Ordent\RamenAuth\Model\RamenVerification;
 
 class AuthManager
 {
+    protected $phone;
+    protected $model;
+    public function __construct($phone = null, RamenVerification $model){
+        $this->phone = ($phone == null) ? app('Nexmo\Client') : $phone;
+        $this->model = $model;
+    }
+
     public function ramenLogin(Request $request, $rules = [], $model)
     {
         $validator = Validator::make($request->all(), $rules);
@@ -98,8 +106,23 @@ class AuthManager
         }
         $data = array_only($request->toArray(), $model->getFillable());
         $result = $model->create($data)->refresh();
+        $verification = $this->postRamenRegister($result);
         $meta = ['status_code' => 200, 'message' => 'You have been succesfully registered.'];
         return [$result, $meta];
+    }
+
+    public function postRamenRegister($result){
+        $verification = null;
+        if(config('ramenauth.verification')){
+            if(array_search('status', $result->getFillable() !== FALSE)){
+                if($result->status < 2){
+                    if(!is_null($result->phone)){
+                        $verification = $this->ramenAskVerification('phone', $result);
+                    }
+                }
+            }
+        }
+        return $verification;;
     }
 
     public function ramenAssignRoleToUser(Request $request, $id, $rules = [], $model)
@@ -241,10 +264,70 @@ class AuthManager
     }
 
     // verify
-    public function ramenVerify(Request $request, $id)
+    public function ramenAskVerification($type, $model)
     {
-
+        switch ($type) {
+            case 'phone':
+                $this->ramenAskVerificationByPhone($model);
+                break;
+            
+            default:
+                # code... =
+                break;
+        }
     }
+    
+
+    protected function ramenAskVerificationByPhone($model){
+        $verification = $this->phone->verify()->start([
+            'number' => $this->resolvePhoneNumber($model->phone),
+            'brand' => 'Phone Verification'
+        ]);
+
+        $this->model->user_id = $model->id;
+        $this->model->code = $verification->getRequestId();
+        $this->model->save();
+
+        return $this->model;
+    }
+
+    protected function resolvePhoneNumber($number){
+
+        if(substr($number, 0, 1) == '0'){
+            $number = "62".substr($number,1);
+        }
+
+        if(substr($number, 0, 1) != "+"){
+            $number = "+".$number;
+        }
+
+        return $number;
+    }
+
+    public function ramenCompleteVerification($type, Request $request, $model){
+        switch($type){
+            case 'phone':
+                return $this->ramenCompleteVerificationByPhone($request, $model);
+        }
+    }
+
+    public function ramenCompleteVerificationByPhone($request, $model){
+        $model = $model->where('phone', $request->input('phone'))->firstOrFail();
+        $verification = $this->model->where('user_id', $model->id)->firstOrFail();
+        $answer = $this->phone->verify()->check($verification->code, $request->input('answer'));
+        if($answer->getStatus() == 0){
+            $verification->verified_at = date('Y-m-d H:i:s');
+            $verification->response = $request->input('answer');
+            if(array_search('status', $model->getFillable()) !== false){
+                $model->status = 2;
+            }
+        }
+        $verification->save();
+        $model->save();
+        $model->fresh();
+        return [$model, ['verification' => 'success', 'status_code' => 200]];
+    }
+
     // forgot password
     public function ramenForgot(Request $request, $id)
     {
