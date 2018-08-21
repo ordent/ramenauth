@@ -160,7 +160,7 @@ class AuthManager
             }
         }
         $result->fresh();
-        $result->roles;
+        $result->load('roles');
         $meta = ['status_code' => 200, 'message' => 'You have been succesfully add Role to User.'];
         return [$result, $meta];
     }
@@ -192,15 +192,14 @@ class AuthManager
         if ($role->count() <= 0) {
             abort(404, 'Role not found');
         }
-
         $result = $model->fresh();
         foreach ($role as $key => $value) {
-            if (!$result->hasRole($value)) {
-                $result = $result->removeRole($value);
+            if ($result->hasRole($value)) {
+                $result->removeRole($value);
             }
         }
         $result->fresh();
-        $result->roles;
+        $result->load('roles');
         $meta = ['status_code' => 200, 'message' => 'You have been succesfully remove Role to User.'];
         return [$result, $meta];
 
