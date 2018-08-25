@@ -10,6 +10,7 @@ use Ordent\RamenRest\Processor\RestProcessor;
 class AuthController extends RestController
 {
     use AuthControllerTrait;
+    
     public function __construct(RestProcessor $processor)
     {
         $this->model = config('ramenauth.model');

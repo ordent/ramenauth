@@ -38,7 +38,21 @@ trait AuthControllerTrait{
             return response()->errorValidation($result, 'Account with this identity is already exist');
         }
         return $this->processor->wrapModel($result, null, null, $meta, null, null);
+    }
 
+    public function ramenAskPhoneForLoginVerification(Request $request){
+        $manager = app(config('ramenauth.manager'));
+        $rules = config('ramenauth.phone_login_rules', []);
+        list($status, $message) = $manager->ramenAskPhoneForLoginVerification($request, $rules, $this->model);
+        if($status != 200){
+            return abort($status, $message);
+        }
+        $result = new \StdClass;
+        $result->data = null;
+        $result->meta = new \StdClass;
+        $result->meta->status_code = $status;
+        $result->meta->message = $message;
+        return response()->successResponse($result);
     }
 
     public function ramenRefresh(Request $requests){
