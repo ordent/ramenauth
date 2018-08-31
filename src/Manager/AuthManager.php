@@ -366,11 +366,11 @@ class AuthManager
             \Mail::to($model->email)->send(new VerifyAccount($this->model->code));
             $this->model->verified_by = 'email';
             $this->model->save();
-            $meta = ['status_code'=>200];
+            $meta = ['status_code'=>200, 'detail'=>'Please check your email for verification code'];
         }else{
             if($result->verified_at === null){
                 \Mail::to($model->email)->send(new VerifyAccount($result->code));
-                $meta = ['status_code' => 400, 'error_message'=>'We send another email to your account'];
+                $meta = ['status_code' => 200, 'detail'=>'We send another email to your account'];
             }else{
                 $meta = ['status_code' => 400, 'error_message'=>'Your code has been verified already'];
             }
