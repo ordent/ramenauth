@@ -15,8 +15,9 @@ class RamenAuthProvider extends ServiceProvider
      */
     public function boot()
     {
-        $path = __DIR__."/Templates";   
+        $path = __DIR__."/views";
         $this->loadViewsFrom($path, 'ramenauth');
+        // $this->loadViewsFrom($path, 'ramenauth');
         $this->publishes([
             $path => resource_path('views/vendor/ramenauth'),
         ]);

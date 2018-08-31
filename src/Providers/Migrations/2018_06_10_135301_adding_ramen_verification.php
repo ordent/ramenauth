@@ -18,6 +18,7 @@ class AddingRamenVerification extends Migration
             $table->integer('user_id');
             $table->string('code');
             $table->string('response')->nullable();
+            $table->enum('verified_by', ['phone', 'email'])->default('email');
             $table->dateTime('verified_at')->nullable();
             $table->timestamps();
         });

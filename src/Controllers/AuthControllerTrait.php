@@ -123,17 +123,21 @@ trait AuthControllerTrait{
         
     }
 
-    public function ramenVerifyStart(){
-        $title = "Start Verification";
-        return view('ramenauth::verify-start', compact('title'));
+    public function ramenVerifyStart(Request $request, $type){
+        $identity = $request->input('identity');
+        $model = $this->model->where($type, $identity)->firstOrFail();
+        $manager = app(config('ramenauth.manager'));
+        list($result, $meta) = $manager->ramenAskVerification($type, $model);
+        return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+        // $title = "Start Verification";
+        // return view('ramenauth::verify-start', compact('title'));
     }
 
-    public function ramenVerify(Request $request, $type = 'email'){
+    public function ramenVerifyComplete(Request $request, $type = 'email'){
         $rules = config('ramenauth.verifications_rules');
         $manager = app(config('ramenauth.manager'));
 
         list($result, $meta) = $manager->ramenCompleteVerification($type, $request, $this->model);
-
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 

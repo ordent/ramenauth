@@ -6,6 +6,7 @@ use Illuminate\Validation\ValidationException;
 use Ordent\RamenAuth\Model\RamenVerification;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Ordent\RamenAuth\Mail\VerifyAccount;
 use Validator;
 
 class AuthManager
@@ -174,6 +175,8 @@ class AuthManager
                 if ($result->status < 2) {
                     if (!is_null($result->phone)) {
                         $verification = $this->ramenAskVerification('phone', $result);
+                    }else if(!is_null($result->email)){
+                        $verification = $this->ramenAskVerification('email', $result);
                     }
                 }
             }
@@ -323,9 +326,11 @@ class AuthManager
     {
         switch ($type) {
             case 'phone':
-                $this->ramenAskVerificationByPhone($model);
+                return $this->ramenAskVerificationByPhone($model);
                 break;
-
+            case 'email':
+                return $this->ramenAskVerificationByEmail($model);
+                break;
             default:
                 # code... =
                 break;
@@ -346,9 +351,31 @@ class AuthManager
 
         $this->model->user_id = $model->id;
         $this->model->code = $verification->getRequestId();
+        $this->model->verified_by = 'phone';
         $this->model->save();
 
-        return $this->model;
+        return $model;
+    }
+
+    protected function ramenAskVerificationByEmail($model){
+        $result = $this->model->where('user_id', $model->id)->first();
+        if($result === null){
+            $this->model->user_id = $model->id;
+            $digit = config('ramenauth.verification_digit', 4);
+            $this->model->code = str_pad(rand(0, pow(10, $digit)-1), $digit, '0', STR_PAD_LEFT);
+            \Mail::to($model->email)->send(new VerifyAccount($this->model->code));
+            $this->model->verified_by = 'email';
+            $this->model->save();
+            $meta = ['status_code'=>200];
+        }else{
+            if($result->verified_at === null){
+                \Mail::to($model->email)->send(new VerifyAccount($result->code));
+                $meta = ['status_code' => 400, 'error_message'=>'We send another email to your account'];
+            }else{
+                $meta = ['status_code' => 400, 'error_message'=>'Your code has been verified already'];
+            }
+        }
+        return [$model, $meta];
     }
 
     protected function resolvePhoneNumber($number)
@@ -370,25 +397,53 @@ class AuthManager
         switch ($type) {
             case 'phone':
                 return $this->ramenCompleteVerificationByPhone($request, $model);
+            case 'email': 
+                return $this->ramenCompleteVerificationByEmail($request, $model);
         }
     }
 
     public function ramenCompleteVerificationByPhone($request, $model)
     {
-        $model = $model->where('phone', $request->input('phone'))->firstOrFail();
+        $model = $model->where('phone', $request->input('identity'))->firstOrFail();
         $verification = $this->model->where('user_id', $model->id)->firstOrFail();
         $answer = $this->phone->verify()->check($verification->code, $request->input('answer'));
-        if ($answer->getStatus() == 0) {
-            $verification->verified_at = date('Y-m-d H:i:s');
-            $verification->response = $request->input('answer');
-            if (array_search('status', $model->getFillable()) !== false) {
-                $model->status = 2;
+        if($verification->verified_by === 'phone'){
+            if ($answer->getStatus() == 0) {
+                $verification->verified_at = date('Y-m-d H:i:s');
+                $verification->response = $request->input('answer');
+                if (array_search('status', $model->getFillable()) !== false) {
+                    $model->status = 2;
+                }
+                $verification->save();
+                $model->save();
+                $model->fresh();
+                return [$model, ['verification' => 'success', 'status_code' => 200]];
+            }else{
+                return [[], ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
             }
         }
-        $verification->save();
-        $model->save();
-        $model->fresh();
-        return [$model, ['verification' => 'success', 'status_code' => 200]];
+        return [[], ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be verified by phone']];
+    }
+
+    public function ramenCompleteVerificationByEmail($request, $model){
+        $model = $model->where('email', $request->input('identity'))->firstOrFail();
+        $verification = $this->model->where('user_id', $model->id)->firstOrFail();
+        if($verification->verified_by === 'email'){
+            if($verification->code === $request->input('answer')){
+                $verification->verified_at = date('Y-m-d H:i:s');
+                $verification->response = $request->input('answer');
+                if(array_search('status', $model->getFillable()) !== false){
+                    $model->status = 2;
+                }
+                $verification->save();
+                $model->save();
+                $model->fresh();
+                return [$model, ['verification' => 'success', 'status_code' => 200]];
+            }else{
+                return [[], ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
+            }
+        }
+        return [[], ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be verified by phone']];
     }
 
     // forgot password
