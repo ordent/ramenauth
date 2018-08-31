@@ -158,7 +158,43 @@ class AuthManager
     {
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->getMessages());
+            $error = $validator->errors()->getMessages();
+            if(array_key_exists('email', $error)){
+                $model = $model->where('email', $request->input('email'))->first();
+                if($model != null){
+                    if (array_search('status', $model->getFillable()) !== false) {
+                        if($model->status < 2){
+                            $error['email'] = 'Your email is exist but hasn\'t been verified yet';
+                        }
+                    }else{
+                        $verify = $this->model->where('user_id', $model->id)->first();
+                        if($verify != null){
+                            if($verify->verified_at === null){
+                                $error['email'] = 'Your email is exist but hasn\'t been verified yet';
+                            }
+                        }else{
+                            $error['email'] = 'Your email is exist but hasn\'t been verified yet';
+                        }
+                    }
+                    $verification = $this->ramenAskVerification('email', $model);
+                }
+            }else if(array_key_exists('phone', $error)){
+                $model = $model->where('phone', $request->input('phone'))->first();
+                if($model != null){
+                    if (array_search('status', $model->getFillable()) !== false) {
+                        if($model->status < 2){
+                            $error['phone'] = 'Your phone is exist but hasn\'t been verified yet';
+                        }
+                    }else{
+                        $verify = $this->model->where('user_id', $model->id)->first();
+                        if($verify->verified_at === null){
+                            $error['phone'] = 'Your phone is exist but hasn\'t been verified yet';
+                        }
+                    }
+                    $verification = $this->ramenAskVerification('phone', $model);
+                }
+            }
+            throw ValidationException::withMessages($error);
         }
         $data = array_only($request->toArray(), $model->getFillable());
         $result = $model->create($data)->refresh();

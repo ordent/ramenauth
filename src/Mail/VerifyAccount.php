@@ -19,7 +19,7 @@ class VerifyAccount extends Mailable
      */
     public function __construct($code)
     {
-        $this->code = intval($code);
+        $this->code = $code;
     }
 
     /**
