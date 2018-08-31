@@ -68,7 +68,10 @@ trait AuthControllerTrait{
         $rules = $this->resolveRules();
         $manager = app(config('ramenauth.manager'));
         list($result, $meta) = $manager->ramenRegister($request, $rules, $this->model);
-        list($result, $meta) = $this->postRamenRegister($result, $meta, $manager);
+
+        if(count($result) != 0){
+            list($result, $meta) = $this->postRamenRegister($result, $meta, $manager);
+        }
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
