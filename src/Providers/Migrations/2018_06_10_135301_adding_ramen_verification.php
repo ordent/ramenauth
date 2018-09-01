@@ -22,6 +22,16 @@ class AddingRamenVerification extends Migration
             $table->dateTime('verified_at')->nullable();
             $table->timestamps();
         });
+
+        Schema::create('ramen_forgottens', function($table){
+            $table->increments('id');
+            $table->integer('user_id');
+            $table->string('code');
+            $table->string('response')->nullable();
+            $table->enum('remember_by', ['phone', 'email'])->default('email');
+            $table->dateTime('remember_at')->nullable();
+            $table->timestamps();
+        });
     }
 
     /**
@@ -32,5 +42,6 @@ class AddingRamenVerification extends Migration
     public function down()
     {
         Schema::drop('ramen_verifications');
+        Schema::drop('ramen_forgottens');
     }
 }

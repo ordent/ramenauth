@@ -4,19 +4,23 @@ namespace Ordent\RamenAuth\Manager;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Ordent\RamenAuth\Model\RamenVerification;
+use Ordent\RamenAuth\Model\RamenForgotten;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Ordent\RamenAuth\Mail\VerifyAccount;
+use Ordent\RamenAuth\Mail\ForgotPassword;
 use Validator;
 
 class AuthManager
 {
     protected $phone;
     protected $model;
-    public function __construct($phone = null, RamenVerification $model)
+    protected $forgot;
+    public function __construct($phone = null, RamenVerification $model, RamenForgotten $forgot)
     {
         $this->phone = ($phone == null) ? app('Nexmo\Client') : $phone;
         $this->model = $model;
+        $this->forgot = $forgot;
     }
 
     public function ramenAskPhoneForLoginVerification(Request $request, $rules = [], $model)
@@ -415,7 +419,7 @@ class AuthManager
     }
 
     protected function ramenAskVerificationByEmail($model){
-        $result = $this->model->where('user_id', $model->id)->first();
+        $result = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->first();
         if($result === null){
             $this->model->user_id = $model->id;
             $digit = config('ramenauth.verification_digit', 4);
@@ -459,10 +463,20 @@ class AuthManager
         }
     }
 
+    public function ramenCompleteForgotten($type, Request $request, $model)
+    {
+        switch ($type) {
+            case 'phone':
+                return $this->ramenCompleteForgottenByPhone($request, $model);
+            case 'email': 
+                return $this->ramenCompleteForgottenByEmail($request, $model);
+        }
+    }
+
     public function ramenCompleteVerificationByPhone($request, $model)
     {
         $model = $model->where('phone', $request->input('identity'))->firstOrFail();
-        $verification = $this->model->where('user_id', $model->id)->firstOrFail();
+        $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'phone')->where('verified_at', null)->orderBy('created_at')->firstOrFail();
         $answer = $this->phone->verify()->check($verification->code, $request->input('answer'));
         if($verification->verified_by === 'phone'){
             if ($answer->getStatus() == 0) {
@@ -484,7 +498,7 @@ class AuthManager
 
     public function ramenCompleteVerificationByEmail($request, $model){
         $model = $model->where('email', $request->input('identity'))->firstOrFail();
-        $verification = $this->model->where('user_id', $model->id)->firstOrFail();
+        $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->where('verified_at', null)->orderBy('created_at')->firstOrFail();
         if($verification->verified_by === 'email'){
             if($verification->code === $request->input('answer')){
                 $verification->verified_at = date('Y-m-d H:i:s');
@@ -504,8 +518,91 @@ class AuthManager
     }
 
     // forgot password
-    public function ramenForgot(Request $request, $id)
+    public function ramenForgot($type, $model)
     {
-
+        switch ($type) {
+            case 'email':
+                return $this->ramenForgotByEmail($model);
+                break;
+            case 'phone':
+                return $this->ramenForgotByPhone($model);
+                break;
+        }
     }
+
+    public function ramenForgotByEmail($model){
+        $forgot = $this->forgot->where('user_id', $model->id)->where('remember_by', 'email')->where('remember_at', null)->first();
+        if($forgot == null){
+            $this->forgot->user_id = $model->id;
+            $digit = config('ramenauth.forgotten_digit', 4);
+            $this->forgot->code = str_pad(rand(0, pow(10, $digit)-1), $digit, '0', STR_PAD_LEFT);
+            \Mail::to($model->email)->send(new ForgotPassword($this->forgot->code));
+            $this->forgot->remember_by = 'email';
+            $this->forgot->save();
+            $meta = ['status_code'=>200, 'detail'=>'Please check your email for authentication code'];
+        }else{
+            \Mail::to($model->email)->send(new VerifyAccount($result->code));
+            $meta = ['status_code' => 200, 'detail'=>'We send another email to your account'];
+        }
+        return [$model, $meta];
+    }
+    
+    public function ramenForgotByPhone($model){
+        $verification = $this->phone->verify()->start([
+            'number' => $this->resolvePhoneNumber($model->phone),
+            'brand' => 'Phone Verification',
+        ]);
+
+        $this->forgot->user_id = $model->id;
+        $this->forgot->code = $verification->getRequestId();
+        $this->forgot->remember_by = 'phone';
+        $this->forgot->save();
+
+        return $model;
+    }
+
+    public function ramenCompleteForgottenByEmail($request, $model){
+        $model = $model->where('email', $request->input('identity'))->firstOrFail();
+        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'email')->where('remember_at', null)->orderBy('created_at')->firstOrFail();
+        if($verification->remember_by === 'email'){
+            if($verification->code === $request->input('answer')){
+                $verification->remember_at = date('Y-m-d H:i:s');
+                $model->password = $request->input('password');
+                $verification->response = $request->input('answer');
+                $verification->save();
+                $model->save();
+                $model->fresh();
+                return [$model, ['forgot' => 'success', 'status_code' => 200]];
+            }else{
+                return [[], ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
+            }
+        }
+        return [[], ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be change the password by email']];
+    }
+
+    public function ramenCompleteForgottenByPhone($request, $model)
+    {
+        $model = $model->where('phone', $request->input('identity'))->firstOrFail();
+        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'phone')->where('remember_at', null)->orderBy('created_at')->firstOrFail();
+        $answer = $this->phone->verify()->check($verification->code, $request->input('answer'));
+        if($verification->remember_by === 'phone'){
+            if ($answer->getStatus() == 0) {
+                $verification->verified_at = date('Y-m-d H:i:s');
+                $verification->response = $request->input('answer');
+                if (array_search('status', $model->getFillable()) !== false) {
+                    $model->status = 2;
+                }
+                $model->password = $request->input('password');
+                $verification->save();
+                $model->save();
+                $model->fresh();
+                return [$model, ['forgot' => 'success', 'status_code' => 200]];
+            }else{
+                return [[], ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
+            }
+        }
+        return [[], ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be change the password by phone']];
+    }
+
+
 }

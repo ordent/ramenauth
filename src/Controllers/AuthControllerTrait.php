@@ -126,6 +126,30 @@ trait AuthControllerTrait{
         
     }
 
+    public function ramenForgotStart(Request $request, $type = 'email'){
+        $rules = array_merge([], ['identity' => 'required']);
+        $validator = \Validator::make($request->all(), $rules);
+        if($validator->fails()){
+            abort(422, json_encode($validator->errors()->getMessages()));
+        }
+        $identity = $request->input('identity');
+        $model = $this->model->where($type, $identity)->firstOrFail();
+        $manager = app(config('ramenauth.manager'));
+        list($result, $meta) = $manager->ramenForgot($type, $model);
+        return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+    }
+
+    public function ramenForgotComplete(Request $request, $type = 'email'){
+        $rules = array_merge([], ['identity'=>'required','answer'=>'required','password' => 'required|confirmed']);
+        $validator = \Validator::make($request->all(), $rules);
+        if($validator->fails()){
+            abort(422, json_encode($validator->errors()->getMessages()));
+        }
+        $manager = app(config('ramenauth.manager'));
+        list($result, $meta) = $manager->ramenCompleteForgotten($type, $request, $this->model);
+        return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+    }
+
     public function ramenVerifyStart(Request $request, $type){
         $identity = $request->input('identity');
         $model = $this->model->where($type, $identity)->firstOrFail();

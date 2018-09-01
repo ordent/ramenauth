@@ -10,15 +10,16 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 class ForgotPassword extends Mailable
 {
     use Queueable, SerializesModels;
+    public $code;
 
     /**
      * Create a new message instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct($code)
     {
-        //
+        $this->code = $code;
     }
 
     /**
@@ -28,6 +29,8 @@ class ForgotPassword extends Mailable
      */
     public function build()
     {
-        return $this->view('ramenauth.forgot');
+        return $this
+            ->from(config('ramenauth.mail_forgot', config('ramenauth.mail_from', 'hello@ordent.co')))
+            ->view('ramenauth::forgot');
     }
 }

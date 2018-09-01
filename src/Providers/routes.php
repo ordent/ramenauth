@@ -9,3 +9,5 @@ Route::get('/api/auth/verify/{identity}/verify_accounts/{code}/{type?}', config(
 Route::post('/api/auth/phone', config('ramenauth.controller').'@ramenAskPhoneForLoginVerification');
 Route::post('/api/auth/verify/{type}', config('ramenauth.controller').'@ramenVerifyStart');
 Route::post('/api/auth/complete/{type}', config('ramenauth.controller').'@ramenVerifyComplete');
+Route::post('/api/auth/forgot/{type}',config('ramenauth.controller').'@ramenForgotStart');
+Route::post('/api/auth/remember/{type}',config('ramenauth.controller').'@ramenForgotComplete');
