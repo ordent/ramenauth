@@ -20,7 +20,7 @@ trait AuthControllerTrait{
     public function ramenLogin(Request $request){
         $rules = config('ramenauth.login_rules');
         $manager = app(config('ramenauth.manager'));
-        list($result, $meta, $post) = $manager->ramenLogin($request, $rules, $this->model); 
+        list($result, $meta, $post) = $manager->ramenLogin($request, $rules, $this->model);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, $post);
     }
     /**

@@ -57,20 +57,25 @@ class AuthManager
         $check = null;
 
         $user = $model->where($type, $request[$type])->get()->first();
+
         if (is_null($user)) {
             abort(401, 'Login failed, wrong username or password');
         }
 
-        if ($type == 'email' || $type == 'username') {
-            $check = $this->authenticateByEmail($credentials);
-        } else if ($type == 'phone') {
-            $check = $this->authenticateByPhone($credentials, $user);
+        if($user->status > 1){
+            if ($type == 'email' || $type == 'username') {
+                $check = $this->authenticateByEmail($credentials);
+            } else if ($type == 'phone') {
+                $check = $this->authenticateByPhone($credentials, $user);
+            }
+            
+            if ($check) {
+                return $this->authenticateFromModel($user, $roles);
+            }
+        }else{
+            return [[], ['is_verified'=>false, 'status_code'=>401, 'message'=>'The account hasn\'t been verified'], null];
         }
-        if ($check) {
-            return $this->authenticateFromModel($user, $roles);
-        } else {
-            abort(401, 'Login failed, wrong username or password');
-        }
+        abort(401, 'Login failed, wrong username or password');
     }
 
     private function authenticateByEmail($credentials)
