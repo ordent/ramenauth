@@ -462,10 +462,17 @@ class AuthManager
     {
         switch ($type) {
             case 'phone':
-                return $this->ramenCompleteVerificationByPhone($request, $model);
+                list($model, $meta) =  $this->ramenCompleteVerificationByPhone($request, $model);
             case 'email': 
-                return $this->ramenCompleteVerificationByEmail($request, $model);
+                list($model, $meta) =  $this->ramenCompleteVerificationByEmail($request, $model);
         }
+        $post = null;
+
+        if(!is_null($model)){
+            list($model, $m, $post) = $this->authenticateFromModel($model);
+        }
+
+        return [$model, $meta, $post];
     }
 
     public function ramenCompleteForgotten($type, Request $request, $model)

@@ -151,6 +151,12 @@ trait AuthControllerTrait{
     }
 
     public function ramenVerifyStart(Request $request, $type){
+        $validator = \Validator::make($request->all(), [
+            'identity' => 'required'
+        ]);
+        if($validator->fails()){
+            abort(422, json_encode($validator->errors()->getMessages()));
+        }
         $identity = $request->input('identity');
         $model = $this->model->where($type, $identity)->firstOrFail();
         $manager = app(config('ramenauth.manager'));
@@ -162,10 +168,17 @@ trait AuthControllerTrait{
 
     public function ramenVerifyComplete(Request $request, $type = 'email'){
         $rules = config('ramenauth.verifications_rules');
+        $validator = \Validator::make($request->all(), [
+            'identity' => 'required',
+            'answer' => 'required'
+        ]);
+        if($validator->fails()){
+            abort(422, json_encode($validator->errors()->getMessages()));
+        }
         $manager = app(config('ramenauth.manager'));
 
-        list($result, $meta) = $manager->ramenCompleteVerification($type, $request, $this->model);
-        return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+        list($result, $meta, $post) = $manager->ramenCompleteVerification($type, $request, $this->model);
+        return $this->processor->wrapModel($result, null, null, $meta, null, $request, $post);
     }
 
     public function ramenVerifyFinish(Request $request, $identity, $code, $type = 'json'){
