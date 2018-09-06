@@ -73,7 +73,7 @@ class AuthManager
                 return $this->authenticateFromModel($user, $roles);
             }
         }else{
-            return [[], ['is_verified'=>false, 'status_code'=>401, 'message'=>'The account hasn\'t been verified'], null];
+            return [null, ['is_verified'=>false, 'status_code'=>401, 'message'=>'The account hasn\'t been verified'], null];
         }
         abort(401, 'Login failed, wrong username or password');
     }
@@ -218,7 +218,7 @@ class AuthManager
                     }
                 }
             }
-            return [[], [
+            return [null, [
                 'status_code' => 422,
                 'message' => "The given data was invalid",
                 'is_verified' => $is_verified,
@@ -495,15 +495,21 @@ class AuthManager
                 $model->fresh();
                 return [$model, ['verification' => 'success', 'status_code' => 200]];
             }else{
-                return [[], ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
+                return [null, ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
             }
         }
-        return [[], ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be verified by phone']];
+        return [null, ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be verified by phone']];
     }
 
     public function ramenCompleteVerificationByEmail($request, $model){
         $model = $model->where('email', $request->input('identity'))->firstOrFail();
-        $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->where('verified_at', null)->orderBy('created_at')->firstOrFail();
+        $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->where('verified_at', null)->orderBy('created_at')->first();
+        if(is_null($verification)){
+            $temp = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->orderBy('created_at')->first();
+            if(is_null($temp)){
+                return [null, ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'You already complete the verification process.']];
+            }
+        }
         if($verification->verified_by === 'email'){
             if($verification->code === $request->input('answer')){
                 $verification->verified_at = date('Y-m-d H:i:s');
@@ -516,10 +522,10 @@ class AuthManager
                 $model->fresh();
                 return [$model, ['verification' => 'success', 'status_code' => 200]];
             }else{
-                return [[], ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
+                return [null, ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
             }
         }
-        return [[], ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be verified by phone']];
+        return [null, ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be verified by phone']];
     }
 
     // forgot password
@@ -579,10 +585,10 @@ class AuthManager
                 $model->fresh();
                 return [$model, ['forgot' => 'success', 'status_code' => 200]];
             }else{
-                return [[], ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
+                return [null, ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
             }
         }
-        return [[], ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be change the password by email']];
+        return [null, ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be change the password by email']];
     }
 
     public function ramenCompleteForgottenByPhone($request, $model)
@@ -603,10 +609,10 @@ class AuthManager
                 $model->fresh();
                 return [$model, ['forgot' => 'success', 'status_code' => 200]];
             }else{
-                return [[], ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
+                return [null, ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'The answer cannot be verified']];
             }
         }
-        return [[], ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be change the password by phone']];
+        return [null, ['forgot'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be change the password by phone']];
     }
 
 
