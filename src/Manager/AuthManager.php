@@ -513,8 +513,10 @@ class AuthManager
         $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->where('verified_at', null)->orderBy('created_at')->first();
         if(is_null($verification)){
             $temp = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->orderBy('created_at')->first();
-            if(is_null($temp)){
+            if(!is_null($temp)){
                 return [null, ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'You already complete the verification process.']];
+            }else{
+                return [null, ['verification'=>'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be verified by phone']];
             }
         }
         if($verification->verified_by === 'email'){
