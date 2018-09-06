@@ -69,7 +69,7 @@ trait AuthControllerTrait{
         $manager = app(config('ramenauth.manager'));
         list($result, $meta) = $manager->ramenRegister($request, $rules, $this->model);
 
-        if(count($result) != 0){
+        if(!is_null($result)){
             list($result, $meta) = $this->postRamenRegister($result, $meta, $manager);
         }
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
@@ -160,7 +160,9 @@ trait AuthControllerTrait{
         $identity = $request->input('identity');
         $model = $this->model->where($type, $identity)->firstOrFail();
         $manager = app(config('ramenauth.manager'));
-        list($result, $meta) = $manager->ramenAskVerification($type, $model);
+        if(config('ramenauth.verification')){
+            list($result, $meta) = $manager->ramenAskVerification($type, $model);
+        }
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
         // $title = "Start Verification";
         // return view('ramenauth::verify-start', compact('title'));
