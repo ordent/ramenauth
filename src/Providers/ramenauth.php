@@ -44,6 +44,7 @@ return [
     'uri' => '/users/',
     'controller' => '\Ordent\RamenAuth\Controllers\AuthController',
     'verification' => env('AUTH_VERIFICATION', false),
+    'primary_verification' => env('PRIMARY_VERIFICATION', 'phone'),
     'sms_verification_vendor' => env('SMS_VERIFICATION_VENDOR', 'nexmo'),
     'sms_verification_request_url' => env('SMS_VERIFICATION_REQUEST_URL', 'https://api.nexmo.com/verify/json'),
     'sms_verification_verify_url' => env('SMS_VERIFICATION_VERIFY_URL', 'https://api.nexmo.com/verify/check/json '),
