@@ -490,8 +490,10 @@ class AuthManager
         switch ($type) {
             case 'phone':
                 list($model, $meta) = $this->ramenCompleteVerificationByPhone($request, $model);
+                break;
             case 'email':
                 list($model, $meta) = $this->ramenCompleteVerificationByEmail($request, $model);
+                break;
         }
         $post = null;
 
@@ -507,8 +509,10 @@ class AuthManager
         switch ($type) {
             case 'phone':
                 return $this->ramenCompleteForgottenByPhone($request, $model);
+                break;
             case 'email':
                 return $this->ramenCompleteForgottenByEmail($request, $model);
+                break;
         }
     }
 
