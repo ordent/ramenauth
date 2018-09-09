@@ -18,7 +18,11 @@ class AuthManager
     protected $forgot;
     public function __construct($phone = null, RamenVerification $model, RamenForgotten $forgot)
     {
-        $this->phone = ($phone == null) ? app('Nexmo\Client') : $phone;
+        if(config('ramenauth.verification')){
+            $this->phone = ($phone == null) ? app('Nexmo\Client') : $phone;
+        }else{
+            $this->phone = null;
+        }
         $this->model = $model;
         $this->forgot = $forgot;
     }
