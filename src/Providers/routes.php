@@ -10,4 +10,5 @@ Route::post('/api/auth/phone', config('ramenauth.controller').'@ramenAskPhoneFor
 Route::post('/api/auth/verify/{type}', config('ramenauth.controller').'@ramenVerifyStart');
 Route::post('/api/auth/complete/{type}', config('ramenauth.controller').'@ramenVerifyComplete');
 Route::post('/api/auth/forgot/{type}',config('ramenauth.controller').'@ramenForgotStart');
+Route::post('/api/auth/forgot-check/{type}',config('ramenauth.controller').'@ramenForgotCheck');
 Route::post('/api/auth/remember/{type}',config('ramenauth.controller').'@ramenForgotComplete');

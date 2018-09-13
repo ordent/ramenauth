@@ -138,6 +138,17 @@ trait AuthControllerTrait{
         list($result, $meta) = $manager->ramenForgot($type, $model);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
+    
+    public function ramenForgotCheck(Request $request, $type = 'email'){
+        $rules = array_merge([], ['identity'=>'required','answer'=>'required']);
+        $validator = \Validator::make($request->all(), $rules);
+        if($validator->fails()){
+            abort(422, json_encode($validator->errors()->getMessages()));
+        }
+        $manager = app(config('ramenauth.manager'));
+        list($result, $meta) = $manager->ramenCheckByIdentity($type, $request, $this->model);
+        return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+    }
 
     public function ramenForgotComplete(Request $request, $type = 'email'){
         $rules = array_merge([], ['identity'=>'required','answer'=>'required','password' => 'required|confirmed']);
