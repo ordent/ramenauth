@@ -622,10 +622,10 @@ class AuthManager
     public function ramenCheckByIdentity($type = 'email', $request, $model){
         switch ($type) {
             case 'email':
-                return $this->ramenCheckByEmail($model);
+                return $this->ramenCheckByEmail($request, $model);
                 break;
             case 'phone':
-                return $this->ramenCheckByPhone($model);
+                return $this->ramenCheckByPhone($request, $model);
                 break;
         }
     }
