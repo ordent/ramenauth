@@ -615,8 +615,8 @@ class AuthManager
         $this->forgot->code = $verification->getRequestId();
         $this->forgot->remember_by = 'phone';
         $this->forgot->save();
-
-        return $model;
+        $meta = ['status_code' => 200, 'message' => 'Please check your your phone for authentication code'];
+        return [$model, $meta];
     }
 
     public function ramenCheckByIdentity($type = 'email', $request, $model){
@@ -672,11 +672,7 @@ class AuthManager
         $answer = $this->phone->verify()->check($verification->code, $request->input('answer'));
         if ($verification->remember_by === 'phone') {
             if ($answer->getStatus() == 0) {
-                $verification->verified_at = date('Y-m-d H:i:s');
                 $verification->response = $request->input('answer');
-                if (array_search('status', $model->getFillable()) !== false) {
-                    $model->status = 2;
-                }
                 // $model->password = $request->input('password');
                 $verification->save();
                 // $model->save();
@@ -692,15 +688,12 @@ class AuthManager
     public function ramenCompleteForgottenByPhone($request, $model)
     {
         $model = $model->where('phone', $request->input('identity'))->firstOrFail();
-        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'phone')->where('response', $request->input('answer'))->orderBy('created_at')->firstOrFail();
+        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'phone')->where('remember_at', null)->where('response', $request->input('answer'))->orderBy('created_at')->firstOrFail();
         // $answer = $this->phone->verify()->check($verification->code, $request->input('answer'));
         if (!is_null($verification)) {
             // if ($answer->getStatus() == 0) {
-            $verification->verified_at = date('Y-m-d H:i:s');
+            $verification->remember_at = date('Y-m-d H:i:s');
             $verification->response = $request->input('answer');
-            if (array_search('status', $model->getFillable()) !== false) {
-                $model->status = 2;
-            }
             $model->password = $request->input('password');
             $verification->save();
             $model->save();
