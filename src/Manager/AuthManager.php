@@ -523,7 +523,7 @@ class AuthManager
     public function ramenCompleteVerificationByPhone($request, $model)
     {
         $model = $model->where('phone', $request->input('identity'))->firstOrFail();
-        $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'phone')->where('verified_at', null)->orderBy('created_at')->firstOrFail();
+        $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'phone')->where('verified_at', null)->orderBy('created_at','desc')->firstOrFail();
         $answer = $this->phone->verify()->check($verification->code, $request->input('answer'));
         if ($verification->verified_by === 'phone') {
             if ($answer->getStatus() == 0) {
@@ -546,9 +546,9 @@ class AuthManager
     public function ramenCompleteVerificationByEmail($request, $model)
     {
         $model = $model->where('email', $request->input('identity'))->firstOrFail();
-        $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->where('verified_at', null)->orderBy('created_at')->first();
+        $verification = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->where('verified_at', null)->orderBy('created_at','desc')->first();
         if (is_null($verification)) {
-            $temp = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->orderBy('created_at')->first();
+            $temp = $this->model->where('user_id', $model->id)->where('verified_by', 'email')->orderBy('created_at','desc')->first();
             if (!is_null($temp)) {
                 return [null, ['verification' => 'failed', 'status_code' => 400, 'error_message' => 'You already complete the verification process.']];
             } else {
@@ -635,7 +635,7 @@ class AuthManager
     public function ramenCheckByEmail($request, $model)
     {
         $model = $model->where('email', $request->input('identity'))->firstOrFail();
-        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'email')->where('remember_at', null)->orderBy('created_at')->firstOrFail();
+        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'email')->where('remember_at', null)->orderBy('created_at','desc')->firstOrFail();
         if ($verification->remember_by === 'email') {
             if ($verification->code === $request->input('answer')) {
                 return [$model, ['forgot' => 'success', 'status_code' => 200]];
@@ -648,7 +648,7 @@ class AuthManager
     public function ramenCompleteForgottenByEmail($request, $model)
     {
         $model = $model->where('email', $request->input('identity'))->firstOrFail();
-        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'email')->where('remember_at', null)->orderBy('created_at')->firstOrFail();
+        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'email')->where('remember_at', null)->orderBy('created_at', 'desc')->firstOrFail();
         if ($verification->remember_by === 'email') {
             if ($verification->code === $request->input('answer')) {
                 $verification->remember_at = date('Y-m-d H:i:s');
@@ -668,7 +668,7 @@ class AuthManager
     public function ramenCheckByPhone($request, $model)
     {
         $model = $model->where('phone', $request->input('identity'))->firstOrFail();
-        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'phone')->where('remember_at', null)->orderBy('created_at')->firstOrFail();
+        $verification = $this->forgot->where('user_id', $model->id)->where('remember_by', 'phone')->where('remember_at', null)->orderBy('created_at', 'desc')->firstOrFail();
         $answer = $this->phone->verify()->check($verification->code, $request->input('answer'));
         if ($verification->remember_by === 'phone') {
             if ($answer->getStatus() == 0) {
