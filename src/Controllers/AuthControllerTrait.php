@@ -208,5 +208,33 @@ trait AuthControllerTrait{
             }
             return view('ramenauth::verify-finish');
         }
-    }    
+    }
+
+    public function ramenChangeIdentity(Request $request, $type = 'email'){
+        $validator = \Validator::make($request->all(), [
+            'old_identity' => 'required',
+            'identity' => 'required|unique:'.config('ramenauth.users_table','users').','.$type
+        ]);
+        if($validator->fails()){
+            abort(422, json_encode($validator->errors()->getMessages()));
+        }
+        $manager = app(config('ramenauth.manager'));
+        list($result, $meta) = $manager->ramenChangeIdentity($type, $request, $this->model);
+        return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+    }
+
+    public function ramenCompleteChangeIdentity(Request $request, $type = 'email'){
+        $validator = \Validator::make($request->all(), [
+            'old_identity' => 'required',
+            'answer' => 'required',
+            'identity' => 'required|unique:'.config('ramenauth.users_table','users').','.$type
+        ]);
+
+        if($validator->fails()){
+            abort(422, json_encode($validator->errors()->getMessages()));
+        }
+        $manager = app(config('ramenauth.manager'));
+        list($result, $meta) = $manager->ramenCompleteChangeIdentity($type, $request, $this->model);
+        return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+    }
 }

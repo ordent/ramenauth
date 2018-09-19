@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Ordent\RamenAuth\Mail\ForgotPassword;
 use Ordent\RamenAuth\Mail\VerifyAccount;
+use Ordent\RamenAuth\Mail\ChangeEmail;
 use Ordent\RamenAuth\Model\RamenForgotten;
 use Ordent\RamenAuth\Model\RamenVerification;
 use Spatie\Permission\Models\Permission;
@@ -705,4 +706,96 @@ class AuthManager
         return [null, ['forgot' => 'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be change the password by phone']];
     }
 
+    public function ramenChangeIdentity($type, $request, $model){
+        switch ($type) {
+            case 'email':
+                return $this->ramenChangeByEmail($request, $model);
+                break;
+            case 'phone':
+                return $this->ramenChangeByPhone($request, $model);
+                break;
+        }
+    }
+
+    public function ramenChangeByEmail($request, $model){
+        $model = $model->where('email', $request->input('old_identity'))->firstOrFail();
+        $digit = 4;
+        $model->identity_token = str_pad(rand(0, pow(10, $digit) - 1), $digit, '0', STR_PAD_LEFT);
+        \Mail::to($request->input('identity'))->send(new ChangeEmail($model->identity_token));
+        $model->save();
+        $meta = ['status_code' => 200, 'message' => 'Please check your email for identity code'];
+        return [$model, $meta];
+    }
+
+    public function ramenChangeByPhone($request, $model){
+        $model = $model->where('phone', $request->input('old_identity'))->firstOrFail();
+        $verification = $this->phone->verify()->start([
+            'number' => $this->resolvePhoneNumber($request->input('identity')),
+            'brand' => 'Phone Verification',
+        ]);
+        $model->identity_token  = $verification->getRequestId();
+        $model->save();
+        $meta = ['status_code' => 200, 'message' => 'Please check your your phone for identity code'];
+        return [$model, $meta];
+    }
+
+    public function ramenCompleteChangeIdentity($type, $request, $model){
+        switch ($type) {
+            case 'email':
+                return $this->ramenCompleteChangeByEmail($request, $model);
+                break;
+            case 'phone':
+                return $this->ramenCompleteChangeByPhone($request, $model);
+                break;
+        }
+    }
+
+    public function ramenCompleteChangeByEmail($request, $model){
+        $model = $model->where('email', $request->input('old_identity'))->whereNotNull('identity_token')->first();
+        if(is_null($model)){
+            return [null, [
+                'status_code' => 400,
+                'message' => 'This account hasn\'t been requested for email change'
+            ]];
+        }
+        if($model->identity_token == $request->input('answer')){
+            $model->identity_token = null;
+            $model->email = $request->input('identity');
+            $model->save();
+            return [$model, [
+                'status_code' => 200,
+                'message' => 'Email change is completed'
+            ]];
+        }else{
+            return [null, [
+                'status_code' => 400,
+                'message' => 'Your answer can\'t be verified'
+            ]];
+        }
+    }
+
+    public function ramenCompleteChangeByPhone($request, $model){
+        $model = $model->where('phone', $request->input('old_identity'))->whereNotNull('identity_token')->first();
+        if(is_null($model)){
+            return [null, [
+                'status_code' => 400,
+                'message' => 'This account hasn\'t been requested for email change'
+            ]];
+        }
+        $answer = $this->phone->verify()->check($model->identity_token, $request->input('answer'));
+        if ($answer->getStatus() == 0) {
+            $model->identity_token = null;
+            $model->phone = $request->input('identity');
+            $model->save();
+            return [$model, [
+                'status_code' => 200,
+                'message' => 'Phone change is completed'
+            ]];
+        } else {
+            return [null, [
+                'status_code' => 400,
+                'message' => 'Your answer can\'t be verified'
+            ]];
+        }
+    }
 }

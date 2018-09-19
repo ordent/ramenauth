@@ -52,4 +52,5 @@ return [
     'sms_verification_api_key' => env('SMS_VERIFICATION_API_KEY', env('NEXMO_KEY')),
     'sms_verification_api_secret' => env('SMS_VERIFICATION_API_SECRET', env('NEXMO_SECRET')),
     'sms_verification_title' => env('SMS_VERIFICATION_TITLE'),
+    'users_table' => env('RAMEN_USERS_TABLE','users')
 ];
