@@ -55,7 +55,7 @@ class AuthManager
             throw ValidationException::withMessages($validator->errors()->getMessages());
         }
         $temp = array_keys(array_except($request->all(), 'password'));
-        foreach($type as $t){
+        foreach($temp as $t){
             if(in_array($t, ['email', 'phone'])){
                 $type = $t;
             }
