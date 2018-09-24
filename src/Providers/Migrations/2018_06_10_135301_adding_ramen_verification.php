@@ -14,7 +14,8 @@ class AddingRamenVerification extends Migration
     public function up()
     {
         Schema::table(config('ramenauth.users_table'), function($table){
-            $table->string('identity_token')->nullable();   
+            $table->string('identity_token')->nullable();
+            $table->string('identity_pending')->nullable();
         });
 
         Schema::create('ramen_verifications', function($table){

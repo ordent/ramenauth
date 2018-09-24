@@ -721,6 +721,7 @@ class AuthManager
         $model = $model->where('email', $request->input('old_identity'))->firstOrFail();
         $digit = 4;
         $model->identity_token = str_pad(rand(0, pow(10, $digit) - 1), $digit, '0', STR_PAD_LEFT);
+        $model->identity_pending = $request->input('identity');
         \Mail::to($request->input('identity'))->send(new ChangeEmail($model->identity_token));
         $model->save();
         $meta = ['status_code' => 200, 'message' => 'Please check your email for identity code'];
@@ -734,6 +735,7 @@ class AuthManager
             'brand' => 'Phone Verification',
         ]);
         $model->identity_token  = $verification->getRequestId();
+        $model->identity_pending = $request->input('identity');
         $model->save();
         $meta = ['status_code' => 200, 'message' => 'Please check your your phone for identity code'];
         return [$model, $meta];
@@ -758,9 +760,10 @@ class AuthManager
                 'message' => 'This account hasn\'t been requested for email change'
             ]];
         }
-        if($model->identity_token == $request->input('answer')){
+        if($model->identity_token == $request->input('answer') && $model->identity_pending == $request->input('identity')){
             $model->identity_token = null;
-            $model->email = $request->input('identity');
+            $model->email = $model->identity_pending;
+            $model->identity_pending = null;
             $model->save();
             return [$model, [
                 'status_code' => 200,
@@ -769,7 +772,7 @@ class AuthManager
         }else{
             return [null, [
                 'status_code' => 400,
-                'message' => 'Your answer can\'t be verified'
+                'message' => 'Your answer can\'t be verified or the new identity is not the same with the one you are verified'
             ]];
         }
     }
@@ -783,9 +786,10 @@ class AuthManager
             ]];
         }
         $answer = $this->phone->verify()->check($model->identity_token, $request->input('answer'));
-        if ($answer->getStatus() == 0) {
+        if ($answer->getStatus() == 0 && $model->identity_pending == $request->input('identity')) {
             $model->identity_token = null;
-            $model->phone = $request->input('identity');
+            $model->phone = $request->identity_pending;
+            $model->identity_pending = null;
             $model->save();
             return [$model, [
                 'status_code' => 200,
@@ -794,7 +798,7 @@ class AuthManager
         } else {
             return [null, [
                 'status_code' => 400,
-                'message' => 'Your answer can\'t be verified'
+                'message' => 'Your answer can\'t be verified or the new identity is not the same with the one you are verified'
             ]];
         }
     }
