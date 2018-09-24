@@ -54,8 +54,12 @@ class AuthManager
         if ($validator->fails()) {
             throw ValidationException::withMessages($validator->errors()->getMessages());
         }
-        $type = head(array_keys(array_except($request->all(), 'password')));
-
+        $temp = array_keys(array_except($request->all(), 'password'));
+        foreach($type as $t){
+            if(in_array($t, ['email', 'phone'])){
+                $type = $t;
+            }
+        }
         $roles = $request->input('roles', false);
         $password = $request->input('password');
         $credentials = $request->only($type, 'password');
