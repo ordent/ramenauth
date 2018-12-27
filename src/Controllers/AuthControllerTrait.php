@@ -40,6 +40,14 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, null);
     }
 
+    /** 
+     * 
+     * method for requesting phone verification
+     * 
+     * @param Request
+     * @return JsonObject
+     * @throws Exception
+    */
     public function ramenAskPhoneForLoginVerification(Request $request){
         $manager = app(config('ramenauth.manager'));
         $rules = config('ramenauth.phone_login_rules', []);
@@ -55,7 +63,15 @@ trait AuthControllerTrait{
         return response()->successResponse($result);
     }
 
-    public function ramenRefresh(Request $requests){
+    /**
+     * 
+     * Method for refreshing user token.
+     * 
+     * @param Request token which will be renewed
+     * @return JsonObject
+     * @throws Exception
+     */
+    public function ramenRefresh(Request $request){
         // the token is valid and we have found the user via the sub claim
         $rules = config('ramenauth.refresh_rules');
         $manager = app(config('ramenauth.manager'));        
@@ -63,6 +79,14 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
+    /**
+     * 
+     * function for registering new user
+     * 
+     * @param Request json request containing registered data
+     * @return  JsonObject
+     * @throws Exception if there is missing data or failed in storing data to db
+     */
     public function ramenRegister(Request $request){
         $request = $this->preRamenRegister($request);
         $rules = $this->resolveRules();
@@ -83,6 +107,14 @@ trait AuthControllerTrait{
         return [$result, $meta];
     }
 
+    /**
+     * 
+     * method for determine which rules to be used.
+     * 
+     * @param null
+     * @return ArrayObject array of defined rules
+     * @throws Exception 
+     */
     private function resolveRules(){
         if(!property_exists($this, 'rules') && !is_null($this->model)){
             if(method_exists($this->model, 'getRules')){
@@ -94,6 +126,15 @@ trait AuthControllerTrait{
         return config('ramenauth.register_rules');
     }
 
+    /**
+     * 
+     * Method for assigning a role to a user
+     * 
+     * @param Request
+     * @param id id of intended user
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenAssignRoleToUser(Request $request, $id){
         $manager = app(config('ramenauth.manager'));
         $rules = config('ramenauth.roles_assign_rules');
@@ -101,6 +142,15 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
+    /**
+     * 
+     * Method for removing role from a user
+     * 
+     * @param Request
+     * @param id id of intended user
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenRemoveRoleFromUser(Request $request, $id){
         $manager = app(config('ramenauth.manager'));
         $rules = config('ramenauth.roles_remove_rules');
@@ -108,6 +158,15 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
+    /**
+     * 
+     * Method for Assigning a permission to a role.
+     * 
+     * @param Request
+     * @param id id of intended role
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenAssignPermissionToRole(Request $request, $id){
         $manager = app(config('ramenauth.manager'));
         $rules = config('ramenauth.permissions_assign_rules');
@@ -115,6 +174,15 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
+    /**
+     * 
+     * Method for removing a permission from a role
+     * 
+     * @param Request
+     * @param id id of intended role
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenRemovePermissionFromRole(Request $request, $id){
         $manager = app(config('ramenauth.manager'));
         $rules = config('ramenauth.permissions_remove_rules');
@@ -126,6 +194,16 @@ trait AuthControllerTrait{
         
     }
 
+    /**
+     * 
+     * Method for initiating a forgot password process. This method will send a mail 
+     * containing code which will be checked in next step.
+     * 
+     * @param Request
+     * @param type type of related user recovery method. Either the code will be sent by email or phone
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenForgotStart(Request $request, $type = 'email'){
         $rules = array_merge([], ['identity' => 'required']);
         $validator = \Validator::make($request->all(), $rules);
@@ -139,6 +217,16 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
     
+    /**
+     * 
+     * Method for verifying the recovery code which sent by email or phone, with the recovery code
+     * which is inserted by user.
+     * 
+     * @param Request 
+     * @param type type of method which used to send recovery code
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenForgotCheck(Request $request, $type = 'email'){
         $rules = array_merge([], ['identity'=>'required','answer'=>'required']);
         $validator = \Validator::make($request->all(), $rules);
@@ -150,6 +238,16 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
+    /**
+     * 
+     * Method for completing the forgot password process. This method checks user answer for the security question
+     * validate users new password.
+     * 
+     * @param Request
+     * @param type type of method which used to send recovery code
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenForgotComplete(Request $request, $type = 'email'){
         $rules = array_merge([], ['identity'=>'required','answer'=>'required','password' => 'required|confirmed']);
         $validator = \Validator::make($request->all(), $rules);
@@ -161,6 +259,15 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
+    /**
+     * 
+     * Method to start verification process by sending verification code which sent based on type
+     * 
+     * @param Request
+     * @param type type of method which used to send verification code
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenVerifyStart(Request $request, $type){
         $validator = \Validator::make($request->all(), [
             'identity' => 'required'
@@ -179,6 +286,10 @@ trait AuthControllerTrait{
         // return view('ramenauth::verify-start', compact('title'));
     }
 
+    /**
+     * 
+     * 
+     */
     public function ramenVerifyComplete(Request $request, $type = 'email'){
         $rules = config('ramenauth.verifications_rules');
         $validator = \Validator::make($request->all(), [
@@ -210,6 +321,15 @@ trait AuthControllerTrait{
         }
     }
 
+    /**
+     * 
+     * Method to change user identity (email, phone) based on selected type, email or phone.
+     * 
+     * @param Request
+     * @param type type of selected identity type
+     * @return JsonObject
+     * @throws Exception
+     */
     public function ramenChangeIdentity(Request $request, $type = 'email'){
         $validator = \Validator::make($request->all(), [
             'old_identity' => 'required',
@@ -223,6 +343,13 @@ trait AuthControllerTrait{
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
     }
 
+    /**
+     * 
+     * Method for finalizing the changes in  user identity, based on selected type
+     * 
+     * @param Request
+     * @param type String type of selected identity type.
+     */
     public function ramenCompleteChangeIdentity(Request $request, $type = 'email'){
         $validator = \Validator::make($request->all(), [
             'old_identity' => 'required',

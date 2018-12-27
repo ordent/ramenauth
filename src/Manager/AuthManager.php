@@ -166,7 +166,7 @@ class AuthManager
         if ($validator->fails()) {
             throw ValidationException::withMessages($validator->errors()->getMessages());
         }
-        $new_token = \JWTAuth::refresh($requests->token);
+        $new_token = \JWTAuth::refresh($request->token);
         $result = ['token' => $new_token];
         $meta = ['status_code' => 200, 'message' => 'Token refresh successful.'];
         return [$result, $meta];
@@ -240,9 +240,15 @@ class AuthManager
                 "detail" => array_flatten($error),
             ]];
         }
-        // insert data to database
+        // build array data using fillable
         $data = array_only($request->toArray(), $model->getFillable());
+
+        // encrypt password to bcrypt
+        $data['password'] = bcrypt($request->password);
+
+        //insert to database
         $result = $model->create($data)->refresh();
+
         // send verification after record created
         $verification = $this->postRamenRegister($result);
         // send resulted record and the meta
@@ -304,7 +310,7 @@ class AuthManager
             }
         }
         $role_id = Role::whereIn('id', $role_id)->get();
-        $role_name = Role::whereIn('', $role_name)->get();
+        $role_name = Role::whereIn('name', $role_name)->get();
 
         $role = $role_id->merge($role_name);
 
@@ -344,7 +350,7 @@ class AuthManager
             }
         }
         $role_id = Role::whereIn('id', $role_id)->get();
-        $role_name = Role::whereIn('', $role_name)->get();
+        $role_name = Role::whereIn('name', $role_name)->get();
 
         $role = $role_id->merge($role_name);
 
@@ -501,7 +507,7 @@ class AuthManager
                 list($model, $meta) = $this->ramenCompleteVerificationByPhone($request, $model);
                 break;
             case 'email':
-                list($model, $meta) = $this->ramenCompleteVerificationByEmail($request, $model);
+                list($model, $meta) = $this->ramenCompleteVerificaramenCompleteVerificationByEmailtionByEmail($request, $model);
                 break;
         }
         $post = null;
@@ -578,7 +584,10 @@ class AuthManager
         return [null, ['verification' => 'failed', 'status_code' => 400, 'error_message' => 'Sorry but your account hasn\'t been asked to be verified by phone']];
     }
 
-    // forgot password
+    /**
+     * Method for forget password which handle type selection. This will delegates proper
+     * method for each type.
+     */
     public function ramenForgot($type, $model)
     {
         switch ($type) {
