@@ -9,7 +9,7 @@
     ],
     "require": {
         "orchestra/testbench": "^3.6",
-        "ordent/ramenrest": "^1.0.12",
+        "ordent/ramenrest": "^1.1.1",
         "tymon/jwt-auth": "0.5.*",
         "spatie/laravel-permission": "^2.12",
         "guzzlehttp/guzzle": "^6.3",
