@@ -23,6 +23,12 @@ trait AuthControllerTrait{
         list($result, $meta, $post) = $manager->ramenLogin($request, $rules, $this->model);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, $post);
     }
+
+    public function ramenLoginV2(Request $request) {
+        $request = $this->aesChecker($request);
+        return $this->ramenLogin($request);
+    }
+
     /**
      * ramenCheck function
      *
@@ -236,5 +242,17 @@ trait AuthControllerTrait{
         $manager = app(config('ramenauth.manager'));
         list($result, $meta) = $manager->ramenCompleteChangeIdentity($type, $request, $this->model);
         return $this->processor->wrapModel($result, null, null, $meta, null, $request, null);
+    }
+
+    private function aesChecker(Request $request) {
+        $decrypted = decrypt($request->payload, false);
+        $decrypted = json_decode($decrypted);
+        $authObject = [];
+
+        foreach ($decrypted as $key => $value) {
+            $authObject[$key] = $value;
+        }
+        $request->merge($authObject);
+        return $request;
     }
 }
